@@ -1,13 +1,23 @@
 {
     "name": "@lovejs/components",
+    "author": "Vincent <vincent@fullstack.pro>",
     "version": "0.0.1",
-    "description": "LoveJs components",
-    "main": "index.js",
-    "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+    "description": "Lovejs components",
+    "main": "src/index.js",
+    "keywords": ["lovejs", "components"],
+    "license": "MIT",
+    "homepage": "http://lovejs.io/",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lovejs/lovejs-components.git"
     },
-    "author": "",
-    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/lovejs/lovejs-components/issues"
+    },
+    "peerDependencies": {
+        "@lovejs/components": "^0.0.1",
+        "@lovejs/framework": "^0.0.1"
+    },
     "dependencies": {
         "accepts": "^1.3.5",
         "ajv": "^6.5.0",

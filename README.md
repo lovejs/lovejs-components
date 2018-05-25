@@ -1,2 +1,1 @@
-Love JS.  
-Components.
+# Love Js - Components
