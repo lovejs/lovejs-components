@@ -84,20 +84,3 @@ class PathMatcher extends Matcher {
 }
 
 module.exports = PathMatcher;
-
-/*
-resolvePath(routePath, parentPath = null) {
-    
-
-    let path = [];
-
-    if (parentPath) {
-        path.push(removeSlash(parentPath));
-    }
-
-    if (routePath) {
-        path.push(removeSlash(routePath));
-    }
-
-    return `/${path.join("/")}`;
-}*/

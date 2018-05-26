@@ -102,11 +102,11 @@ class DefaultLoader {
     }
 
     mergeOptions(routeOptions = {}, inheritOptions = {}) {
-        const matchers = _.mergeWith({}, inheritOptions.matchers, routeOptions.matchers, (routeValue, inheritValue, key) =>
+        const matchers = _.mergeWith({}, inheritOptions.matchers, routeOptions.matchers, (inheritValue, routeValue, key) =>
             this.getMatcher(key).mergeOptions(routeValue, inheritValue)
         );
 
-        const middlewares = _.mergeWith({}, inheritOptions.middlewares, routeOptions.middlewares, (routeValue, inheritValue, key) =>
+        const middlewares = _.mergeWith({}, inheritOptions.middlewares, routeOptions.middlewares, (inheritValue, routeValue, key) =>
             this.getMiddleware(key).mergeOptions(routeValue, inheritValue)
         );
 
