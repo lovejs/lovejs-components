@@ -4,7 +4,10 @@
     "version": "0.0.1",
     "description": "Lovejs components",
     "main": "src/index.js",
-    "keywords": ["lovejs", "components"],
+    "keywords": [
+        "lovejs",
+        "components"
+    ],
     "license": "MIT",
     "homepage": "http://lovejs.io/",
     "repository": {
@@ -48,6 +51,7 @@
         "path-to-regexp": "^2.1.0",
         "querystring": "^0.2.0",
         "statuses": "^1.5.0",
+        "table": "^4.0.3",
         "type-is": "^1.6.16",
         "vary": "^1.1.2"
     }
