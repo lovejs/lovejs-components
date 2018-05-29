@@ -7,7 +7,7 @@ class Middleware {
     }
 
     getOptionsSchema() {
-        return { type: "null" };
+        return {};
     }
 
     validateOptions(options) {
