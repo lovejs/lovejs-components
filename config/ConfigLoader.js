@@ -26,7 +26,12 @@ const defaultTags = {
             }
         }
     },
-
+    configuration: {
+        schema: { type: "object" },
+        normalize: (data, vars, loader) => {
+            return loader.clone().loadFile(path.join(data.path, data.file));
+        }
+    },
     js: {
         schema: { type: "string" },
         normalize: js => eval(js)
@@ -162,7 +167,7 @@ class ConfigLoader {
             throw new Error("Normalize Tag expect a ConfigTag object");
         }
         const tagNormalizer = this.getTagNormalizer(tag.getType());
-        return tagNormalizer(tag.getData(), vars);
+        return tagNormalizer.apply(this, [tag.getData(), vars, this]);
     }
 
     normalizeTags(data, vars = {}) {
