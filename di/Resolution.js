@@ -1,20 +1,15 @@
 const DiResolutionError = require("./errors/DiResolutionError");
 
-// constructor
-// factory
-// calls
-
-/*
-service a => service a.1 (constructor)
-          => service a.2 (constructor)
-
-Resolution -> addChild("constructor", service a.1)
-           -> addChild("constructor", service a.2)
-*/
+const { ServiceNamePattern } = require("./schemas/definitions");
 
 class Resolution {
     constructor(serviceId, label = null, parent = null) {
-        this.serviceId = serviceId;
+        const parts = serviceId.split(":");
+        if (parts.length > 2 || !RegExp(ServiceNamePattern).test(parts[0])) {
+            throw new DiResolutionError(`Invalid resolution name specified. Must be of form "service" or "service:method"`);
+        }
+        this.serviceId = parts[0];
+        this.method = parts[1] || null;
         this.parent = parent;
         this.label = label;
         this.children = {};
@@ -26,11 +21,11 @@ class Resolution {
     }
 
     getId() {
-        return this.getServiceId();
+        return this.serviceId;
     }
 
-    getServiceId() {
-        return this.serviceId;
+    getMethod() {
+        return this.method;
     }
 
     getService() {
@@ -68,6 +63,10 @@ class Resolution {
         return resolution;
     }
 
+    setMethod(method) {
+        this.method = method;
+    }
+
     setService(service) {
         this.service = service;
     }
@@ -87,7 +86,7 @@ class Resolution {
 
     hasParent(serviceId) {
         let parent = this.getParent();
-        while(parent) {
+        while (parent) {
             if (parent.getId() == serviceId) {
                 return true;
             }
@@ -114,6 +113,19 @@ class Resolution {
             const child = children[childname];
             await child.traverse(callback);
         }
+    }
+
+    resolve(instance) {
+        const method = this.getMethod();
+        if (!method) {
+            return instance;
+        }
+
+        if (typeof instance[method] !== "function") {
+            throw new DiResolutionError(`Resolving method "${method}" of service "${this.getId()}" failed. Method is not a function`);
+        }
+
+        return () => instance[method](...arguments);
     }
 
     debugStack() {

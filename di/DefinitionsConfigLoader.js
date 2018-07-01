@@ -1,12 +1,11 @@
 const _ = require("lodash");
 const path = require("path");
 
-const { ConfigLoader, TemplateTag, ConfigTag } = require("../config");
+const { ConfigLoader } = require("../config");
 const { Validation } = require("../validation");
-const { deepMapValues } = require("../utils");
 
 const { definitionsSchema, serviceSchema } = require("./schemas/definitions");
-const { Alias, Argument, Arguments, Call, Configurator, Factory, Service, Tag } = require("./Definitions");
+const { Argument, Arguments, Call, Factory, Service, Tag } = require("./Definitions");
 
 const normalizePath = filePath => filePath.replace(/\.[^/.]+$/, "").replace(path.sep, "/");
 const underscorizePath = filePath => filePath.replace(/\.[^/.]+$/, "").replace(path.sep, "_");
@@ -117,7 +116,7 @@ class DefinitionsConfigLoader extends ConfigLoader {
             },
             {
                 path: "services.*.calls",
-                normalize: calls => _.map(calls, call => new Call(call.method, call.args))
+                normalize: calls => _.map(calls, call => new Call(call.method, call.args, call.await !== false))
             },
             {
                 path: "services",

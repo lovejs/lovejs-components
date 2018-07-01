@@ -1,9 +1,10 @@
 const Arguments = require("./Arguments");
 
 class Call {
-    constructor(method, args = []) {
+    constructor(method, args = [], doAwait = true) {
         this.method = method;
         this.args = new Arguments(args);
+        this.await = doAwait;
     }
 
     getMethod() {
@@ -12,6 +13,10 @@ class Call {
 
     getArgs() {
         return this.args;
+    }
+
+    getAwait() {
+        return this.await;
     }
 
     toString() {

@@ -1,5 +1,5 @@
 const _ = require("lodash");
-const { isClass, isFunction, getMatchingGroup } = require("../utils");
+const { isFunction, getMatchingGroup } = require("../utils");
 
 const { PathFinder } = require("../pathfinder");
 
@@ -8,7 +8,6 @@ const Argument = require("./Definitions/Argument");
 const Service = require("./Definitions/Service");
 
 const DefinitionsLoader = require("./DefinitionsLoader");
-const DefinitionsConfigLoader = require("./DefinitionsConfigLoader");
 const AutowireResolver = require("./Autowiring/AutowireResolver");
 const { parametersExtracter } = require("../reflection");
 
@@ -16,8 +15,7 @@ const Resolution = require("./Resolution");
 const DiResolutionError = require("./errors/DiResolutionError");
 const DiServiceError = require("./errors/DiServiceError");
 
-const helpers = require("./helpers");
-const { _service, _parameter } = helpers;
+const { ServiceNamePattern } = require("./schemas/definitions");
 
 module.exports = class Container {
     constructor(_options) {
@@ -116,12 +114,12 @@ module.exports = class Container {
             if (_.isArray(value)) {
                 res = [];
                 for (let v in value) {
-                    res.push(await container.resolveArgument(value[v], resolution, `${prefix}[${v}]`)); //.clone(null, `[${v}]`)));
+                    res.push(await container.resolveArgument(value[v], resolution, `${prefix}[${v}]`));
                 }
             } else if (_.isPlainObject(value)) {
                 res = {};
                 for (let v in value) {
-                    res[v] = await container.resolveArgument(value[v], resolution, `${prefix}[${v}]`); //.clone(null, `[${v}]`));
+                    res[v] = await container.resolveArgument(value[v], resolution, `${prefix}[${v}]`);
                 }
             } else {
                 res = value;
@@ -259,7 +257,9 @@ module.exports = class Container {
     }
 
     setServices(services) {
-        this.services = services;
+        for (let serviceId in services) {
+            this.setService(serviceId, services[serviceId]);
+        }
     }
 
     getService(id) {
@@ -274,6 +274,10 @@ module.exports = class Container {
     }
 
     setService(id, service) {
+        if (!RegExp(ServiceNamePattern).test(id)) {
+            throw new Error(`Invalid service name specified ${id}. Service name contains invalid characters.`);
+        }
+
         this.services[id] = service;
     }
 
@@ -332,24 +336,10 @@ module.exports = class Container {
     }
 
     async get(serviceId) {
-        if (this.hasInstance(serviceId)) {
-            return this.getInstance(serviceId);
-        }
-
-        const service = this.getService(serviceId);
-
-        if (!service) {
-            throw new DiServiceError(serviceId, `Service not found in container`);
-        }
-
-        if (!service.isPublic()) {
-            throw new DiServiceError(serviceId, `Service is a private service and cannot be accessed directly`);
-        }
-
-        return this.resolve(new Resolution(serviceId));
+        return this.resolve(new Resolution(serviceId), true);
     }
 
-    async resolve(resolution) {
+    async resolve(resolution, isPublic = false) {
         if (this.debug) {
             console.log(resolution.debugStack());
         }
@@ -359,7 +349,7 @@ module.exports = class Container {
         }
 
         if (this.hasInstance(resolution.getId())) {
-            return this.getInstance(resolution.getId());
+            return resolution.resolve(this.getInstance(resolution.getId()));
         }
 
         const service = this.getService(resolution.getId());
@@ -367,14 +357,24 @@ module.exports = class Container {
             throw new DiResolutionError(resolution, `Service "${resolution.getId()}" not found in container`);
         }
 
+        if (isPublic && !service.isPublic()) {
+            throw new DiServiceError(
+                resolution.getId(),
+                `Service is a private service and cannot be accessed directly with container.get()`
+            );
+        }
+
         if (service.getAlias()) {
-            return this.resolve(new Resolution(service.getAlias(), `${resolution.getId()} @alias `));
+            const aliasResolution = new Resolution(service.getAlias(), `${resolution.getId()} @alias `);
+            aliasResolution.setMethod(resolution.getMethod());
+
+            return this.resolve(aliasResolution);
         }
 
         resolution.setService(service);
 
         if (this.shared[resolution.getId()]) {
-            return this.shared[resolution.getId()];
+            return resolution.resolve(this.shared[resolution.getId()]);
         }
 
         const resolved = await this.load(resolution, service);
@@ -402,7 +402,10 @@ module.exports = class Container {
 
                         try {
                             const resolvedArgs = await this.resolveArguments(args, resolution, `@calls[${callIdx}](${method})`);
-                            await instance[method](...resolvedArgs);
+                            const callResult = instance[method](...resolvedArgs);
+                            if (call.getAwait()) {
+                                await callResult;
+                            }
                         } catch (error) {
                             throw new DiResolutionError(resolution, `when performing call n°${callIdx + 1} on method "${method}"`, error);
                         }
@@ -411,7 +414,7 @@ module.exports = class Container {
             });
         }
 
-        return resolved;
+        return resolution.resolve(resolved);
     }
 
     async load(resolution, service) {

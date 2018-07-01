@@ -1,6 +1,6 @@
 const _ = require("lodash");
 
-const allowedSpecials = `:._\\-/`;
+const allowedSpecials = `._-`;
 const ServiceNamePattern = `^[a-zA-Z0-9]+(?:[${allowedSpecials}]+[a-zA-Z0-9]+)*$`;
 const ServiceAutoPattern = `^[${allowedSpecials}a-zA-Z0-9]*\\*[${allowedSpecials}a-zA-Z0-9]*$`;
 
@@ -30,7 +30,8 @@ const callSchema = {
     type: "object",
     properties: {
         method: { type: "string" },
-        args: argsSchema
+        args: argsSchema,
+        await: { type: "boolean" }
     },
     required: ["method"],
     additionalProperties: false
@@ -167,4 +168,4 @@ const definitionsSchema = {
     }
 };
 
-module.exports = { definitionsSchema, serviceSchema };
+module.exports = { definitionsSchema, serviceSchema, ServiceNamePattern };
