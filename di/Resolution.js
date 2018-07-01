@@ -125,7 +125,7 @@ class Resolution {
             throw new DiResolutionError(`Resolving method "${method}" of service "${this.getId()}" failed. Method is not a function`);
         }
 
-        return () => instance[method](...arguments);
+        return (...a) => instance[method](...a);
     }
 
     debugStack() {
