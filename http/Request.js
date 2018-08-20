@@ -10,6 +10,8 @@ const fresh = require("fresh");
 const only = require("only");
 const accepts = require("accepts");
 
+const IP = Symbol("context#ip");
+
 /**
  * Almost compatible with KOA (@see XXX )
  */
@@ -396,9 +398,19 @@ class Request {
      * @api public
      */
     get ips() {
-        const proxy = this.app.proxy;
         const val = this.get("X-Forwarded-For");
-        return proxy && val ? val.split(/\s*,\s*/) : [];
+        return val ? val.split(/\s*,\s*/) : [];
+    }
+
+    get ip() {
+        if (!this[IP]) {
+            this[IP] = this.ips[0] || this.socket.remoteAddress || "";
+        }
+        return this[IP];
+    }
+
+    set ip(_ip) {
+        this[IP] = _ip;
     }
 
     /**
