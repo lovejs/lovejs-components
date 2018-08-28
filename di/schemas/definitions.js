@@ -1,8 +1,11 @@
 const _ = require("lodash");
 
-const allowedSpecials = `._-`;
-const ServiceNamePattern = `^[a-zA-Z0-9]+(?:[${allowedSpecials}]+[a-zA-Z0-9]+)*$`;
-const ServiceAutoPattern = `^[${allowedSpecials}a-zA-Z0-9]*\\*[${allowedSpecials}a-zA-Z0-9]*$`;
+const specials = `._-`;
+const alphaNums = "a-zA-Z0-9";
+const alphaNumsSpecials = `${alphaNums}${specials}`;
+
+const ServiceNamePattern = `^[${alphaNumsSpecials}]+$`;
+const ServiceAutoPattern = `^[${alphaNumsSpecials}]+\\*{1}[${alphaNumsSpecials}]*$`;
 
 const ParameterNamePattern = "^[a-zA-Z0-9]+(?:[:._-]+[a-zA-Z0-9]+)*$";
 
@@ -66,6 +69,9 @@ const serviceSchema = {
         creation: { type: "string", enum: ["auto", "module", "function", "class"] },
         factory: factorySchema,
         configurator: configuratorSchema,
+        _extends: {
+            type: "boolean"
+        },
         alias: {
             type: "string"
         },
@@ -95,11 +101,13 @@ const serviceSchema = {
             type: "boolean"
         }
     },
-    not: { prohibited: ["module", "factory", "alias", "parent"] },
+    not: { prohibited: ["module", "factory", "alias", "parent", "_extends"] },
     incompatibleProperties: ["module", "factory", "alias"],
+    additionalProperties: false,
     errorMessage: {
         not: `Service definition should have at least one property among "module", "factory", "parent" or "alias" (and only one)`,
-        incompatibleProperties: `Service definition should have only ONE property among "module", "factory" and "alias"`
+        incompatibleProperties: `Service definition should have only ONE property among "module", "factory" and "alias"`,
+        additionalProperties: "Unknow service definition property"
     }
 };
 
@@ -162,10 +170,11 @@ const definitionsSchema = {
             },
             additionalProperties: false,
             errorMessage: {
-                additionalProperties: "Invalid service name provided"
+                additionalProperties: "Invalid service name definition"
             }
         }
-    }
+    },
+    additionalProperties: false
 };
 
 module.exports = { definitionsSchema, serviceSchema, ServiceNamePattern };

@@ -11,9 +11,8 @@ class AutowireResolver {
     resolve(target, method, targetArgs) {
         const argsNames = this.parametersExtracter(target, method);
         const argsResolved = _.map(argsNames, this.resolveArgument.bind(this));
-        const args = new Arguments(argsResolved);
-        
-        return args;
+
+        return new Arguments(argsResolved);
     }
 
     resolveArgument(arg) {

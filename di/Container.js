@@ -36,7 +36,7 @@ module.exports = class Container {
 
         this.pathfinder = options.pathfinder || new PathFinder();
         this.autowireResolver = options.autowireResolver || new AutowireResolver(parametersExtracter);
-        this.definitionsLoader = options.loader || new DefinitionsLoader(this.pathfinder);
+        this.definitionsLoader = options.loader || new DefinitionsLoader({ pathfinder: this.pathfinder });
 
         this.instances["container"] = this;
         this.instances["service_container"] = this;
@@ -168,7 +168,7 @@ module.exports = class Container {
         this.argumentResolvers[type] = resolver;
     }
 
-    async loadDefinitions(definitions, origin) {
+    async loadDefinitions(definitions) {
         const { parameters, services } = await this.definitionsLoader.loadFile(definitions);
 
         _.each(parameters, (value, name) => {
@@ -278,6 +278,13 @@ module.exports = class Container {
             throw new Error(`Invalid service name specified ${id}. Service name contains invalid characters.`);
         }
 
+        if (service.isExtends()) {
+            if (_.has(this.services, id)) {
+                this.services[id].setProperties(service.getInitialProperties());
+                return;
+            }
+        }
+
         this.services[id] = service;
     }
 
@@ -301,7 +308,7 @@ module.exports = class Container {
 
     resolveParameter(name) {
         if (this.resolutionStack.includes(name)) {
-            throw new Error("Redondance cyclique dans les paramètres... We are fucked.");
+            throw new Error("Cyclic parameters resolving");
         } else {
             this.resolutionStack.push(name);
         }
@@ -419,7 +426,7 @@ module.exports = class Container {
 
     async load(resolution, service) {
         if (this.resolving[resolution.getId()] && resolution.hasParent(resolution.getId())) {
-            throw new DiResolutionError(resolution.getId(), `Cyclic`);
+            throw new DiResolutionError(resolution, `Cyclic`);
         }
 
         const promise = this.resolving[resolution.getId()] ? this.resolving[resolution.getId()] : this.loadService(resolution, service);
@@ -562,7 +569,7 @@ module.exports = class Container {
         let resolved = [];
 
         for (let idx in list) {
-            resolved.push(await this.resolveArgument(list[idx], resolution, `${prefix}[${idx}]`)); //resolution.addChild(`${prefix}[${idx}`,resolution.clone(null, `[${idx}]`)));
+            resolved.push(await this.resolveArgument(list[idx], resolution, `${prefix}[${idx}]`));
         }
 
         return resolved;

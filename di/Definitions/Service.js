@@ -9,7 +9,7 @@ const Tag = require("./Tag");
 
 const DiServiceError = require("../errors/DiServiceError");
 
-const defaultsProperties = {
+const defaultsProperties = Object.freeze({
     module: false,
     creation: "auto",
     factory: false,
@@ -22,27 +22,44 @@ const defaultsProperties = {
     shared: true,
     autowired: false,
     public: false
-};
+});
 
 const availableCreations = ["auto", "module", "function", "class"];
 
 class Service {
-    constructor(arg, options = {}) {
-        if (_.isString(arg)) {
-            this.module = arg;
-        } else if (arg instanceof Factory) {
-            this.factory = arg;
-        } else if (arg instanceof Alias) {
-            this.alias = alias;
-        } else if (_.isFunction(arg)) {
-            this.module = arg;
+    constructor(mainProperty, properties = {}) {
+        this._properties = _.pick(properties, _.keys(defaultsProperties));
+
+        if (_.isString(mainProperty)) {
+            this.setModule(mainProperty);
+        } else if (mainProperty instanceof Factory) {
+            this.setFactory(mainProperty);
+        } else if (mainProperty instanceof Alias) {
+            this.setAlias(mainProperty);
+        } else if (_.isFunction(mainProperty)) {
+            this.setModule(mainProperty);
         }
 
-        _.assign(this, _.pick(options, _.keys(defaultsProperties)));
-
-        this.parentId = options.parentId || false;
+        this.parentId = properties.parentId || false;
         this.parent = false;
         this.compiled = false;
+        this.extends = false;
+    }
+
+    getInitialProperties() {
+        return this._properties;
+    }
+
+    setProperties(properties) {
+        _.assign(this._properties, properties);
+    }
+
+    isExtends() {
+        return this.extends;
+    }
+
+    setExtends() {
+        this.extends = true;
     }
 
     isCompiled() {
@@ -51,16 +68,6 @@ class Service {
 
     setCompiled() {
         this.compiled = true;
-    }
-
-    getProperty(property) {
-        if (_.has(this, property)) {
-            return _.get(this, property);
-        } else if (this.hasParent()) {
-            return this.getParent().getProperty(property);
-        } else {
-            return _.get(defaultsProperties, property);
-        }
     }
 
     getParentId() {
@@ -83,13 +90,31 @@ class Service {
         this.parent = parent;
     }
 
+    getProperty(property) {
+        if (_.has(this._properties, property)) {
+            return _.get(this._properties, property);
+        } else if (this.hasParent()) {
+            return this.getParent().getProperty(property);
+        } else {
+            return _.clone(_.get(defaultsProperties, property));
+        }
+    }
+
+    setProperty(property, value) {
+        _.set(this._properties, property, value);
+        return this;
+    }
+
+    hasProperty(property) {
+        return _.has(this._properties, property);
+    }
+
     getModule() {
         return this.getProperty("module");
     }
 
-    setModule(module) {
-        this.module = module;
-        return this;
+    setModule(serviceModule) {
+        return this.setProperty("module", serviceModule);
     }
 
     getCreation() {
@@ -100,8 +125,7 @@ class Service {
         if (!_.isString(creation) || !availableCreations.includes(creation.toLowerCase())) {
             throw new DiServiceError(`Invalid service creation provided. Must be one of "${availableCreations.join(", ")}" `);
         }
-        this.creation = creation.toLowerCase();
-        return this;
+        return this.setProperty("creation", creation.toLowerCase());
     }
 
     getFactory() {
@@ -109,16 +133,14 @@ class Service {
     }
 
     hasFactory() {
-        return _.has(this, "factory");
+        return this.hasProperty("factory");
     }
 
     setFactory(factory) {
         if (!(factory instanceof Factory)) {
             throw new DiServiceError(`Service factory must be an instanceof "Factory" when setting throught setFactory`);
         }
-        this.factory = factory;
-
-        return this;
+        return this.setProperty("factory", factory);
     }
 
     getConfigurator() {
@@ -126,68 +148,30 @@ class Service {
     }
 
     hasConfigurator() {
-        return _.has(this, "configurator");
+        return this.hasProperty("configurator");
     }
 
     setConfigurator(configurator) {
         if (!(configurator instanceof Configurator)) {
             throw new DiServiceError("Service configurator must be an instanceof Configurator when setting throught setConfigurator");
         }
-        this.configurator = configurator;
-
-        return this;
+        return this.setProperty("configurator", configurator);
     }
 
     getAlias() {
-        return this.alias;
+        return this.getProperty("alias");
     }
 
     setAlias(alias) {
-        this.alias = alias;
-
-        return this;
+        return this.setProperty("alias", alias);
     }
 
     getArgs() {
-        const ownArgs = _.get(this, "args");
-        // own args ?
-        if (ownArgs) {
-        }
-        // parent args ?
-        // replace ?
-        // merge ?
-        return this.args;
+        return this.getProperty("args");
     }
-
-    /*
-    let args = definition.args;
-
-    if (definition.parent) {
-        const parent = this.getDefinition(definition.parent);
-        if (!parent) {
-            throw new Error(`The parent service ${definition.parent} of ${definitionId} doesn't exist`);
-        }
-
-        args = parent.args || [];
-
-        if (_.isArray(definition.args)) {
-            args = definition.args;
-        } else if (_.isObject(definition.args)) {
-            _.each(definition.args, (v, k) => {
-                if (_.has(args, k)) {
-                    args[k] = v;
-                }
-            });
-        }
-
-        definition = _.defaults(definition, parent);
-    }
-    */
 
     setArgs(args) {
-        this.args = new Arguments(args);
-
-        return this;
+        return this.setProperty("args", args instanceof Arguments ? args : new Arguments(args));
     }
 
     getCalls() {
@@ -200,7 +184,7 @@ class Service {
     }
 
     setCalls(calls) {
-        this.calls = [];
+        this.setProperty("calls", []);
         if (calls) {
             calls.map(c => this.addCall(c));
         }
@@ -208,30 +192,25 @@ class Service {
         return this;
     }
 
-    getCall() {
-        return Call;
-    }
-
     addCall(aCall) {
         if (!(aCall instanceof Call)) {
             throw new DiServiceError("Service calls must be instance of Call when adding throught addCall method");
         }
 
-        if (!this.calls) {
-            this.calls = [];
-        }
+        const calls = this.getProperty("calls") || [];
+        calls.push(aCall);
 
-        this.calls.push(aCall);
-        return this;
+        return this.setProperty("calls", calls);
     }
 
     getTags() {
-        return this.getProperty("tags");
+        return this.getProperty("tags") || [];
     }
 
     setTags(tags) {
-        this.tags = [];
+        this.setProperty("tags", []);
         tags.map(t => this.addTag(t));
+
         return this;
     }
 
@@ -242,7 +221,7 @@ class Service {
         }
 
         for (let i = 0; i < tags.length; i++) {
-            const tag = this.tags[i];
+            const tag = tags[i];
             if (tag.getName() === label) {
                 return tag;
             }
@@ -259,18 +238,14 @@ class Service {
         if (!(tag instanceof Tag)) {
             throw new DiServiceError("Service tags must be instanceof Tag when adding throught addTag method");
         }
+        const tags = this.getTags() || [];
+        tags.push(tag);
 
-        if (!this.tags) {
-            this.tags = [];
-        }
-        this.tags.push(tag);
-
-        return this;
+        return this.setProperty("tags", tags);
     }
 
     setPreloaded(preloaded) {
-        this.preloaded = preloaded;
-        return this;
+        return this.setProperty("preloaded", preloaded);
     }
 
     isPreloaded() {
@@ -278,8 +253,7 @@ class Service {
     }
 
     setShared(shared) {
-        this.shared = shared;
-        return this;
+        return this.setProperty("shared", shared);
     }
 
     isShared() {
@@ -287,8 +261,7 @@ class Service {
     }
 
     setAutowired(autowired) {
-        this.autowired = autowired;
-        return this;
+        return this.setProperty("autowired", autowired);
     }
 
     isAutowired() {
@@ -296,8 +269,7 @@ class Service {
     }
 
     setPublic(isPublic) {
-        this.public = isPublic;
-        return this;
+        return this.setProperty("public", isPublic);
     }
 
     isPublic() {

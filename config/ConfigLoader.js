@@ -1,5 +1,4 @@
 const _ = require("lodash");
-const fs = require("fs");
 const path = require("path");
 const JSONPath = require("jsonpath-plus");
 
@@ -167,6 +166,7 @@ class ConfigLoader {
             throw new Error("Normalize Tag expect a ConfigTag object");
         }
         const tagNormalizer = this.getTagNormalizer(tag.getType());
+
         return tagNormalizer.apply(this, [tag.getData(), vars, this]);
     }
 
@@ -271,7 +271,7 @@ class ConfigLoader {
         return this.load(file.getContent(), parser);
     }
 
-    load(content, parser = null, vars = {}) {
+    load(content, parser = null, vars = {}, validator = null) {
         let data;
         if (parser) {
             try {
@@ -288,7 +288,7 @@ class ConfigLoader {
         data = this.transform(data);
         this.validateTags(data);
         data = this.normalizeTags(data, vars);
-        data = this.validate(data);
+        data = this.validate(data, validator);
         data = this.normalize(data);
 
         configs.push(_.omit(data, "imports"));
@@ -305,12 +305,13 @@ class ConfigLoader {
         return data;
     }
 
-    validate(data) {
-        const validator = this.getValidator();
+    validate(data, validator = false) {
+        validator = validator || this.getValidator();
         if (validator) {
             try {
                 return validator.validate(data);
             } catch (e) {
+                console.log(">", e.errors[0].params.errors);
                 throw getError(this.getCurrentFile(), e.message);
             }
         }

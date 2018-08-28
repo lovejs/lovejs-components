@@ -6,7 +6,10 @@ class Resolution {
     constructor(serviceId, label = null, parent = null) {
         const parts = serviceId.split(":");
         if (parts.length > 2 || !RegExp(ServiceNamePattern).test(parts[0])) {
-            throw new DiResolutionError(`Invalid resolution name specified. Must be of form "service" or "service:method"`);
+            throw new DiResolutionError(
+                this,
+                `Invalid resolution service specified "${serviceId}". Must be of form "service" or "service:method"`
+            );
         }
         this.serviceId = parts[0];
         this.method = parts[1] || null;
