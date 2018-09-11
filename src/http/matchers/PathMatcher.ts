@@ -1,13 +1,24 @@
 import * as _ from "lodash";
-const pathToRegexp = require("path-to-regexp");
+import * as pathToRegexp from "path-to-regexp";
 
-import { Matcher } from "../../routing";
+import { BaseMatcher } from "../../routing";
 
 const removeFirstSlash = path => (path[0] == "/" ? path.slice(1) : path);
 const cache = {};
 
-class PathMatcher extends Matcher {
-    match(context, { path, params }, route) {
+export type PathMatcherOptions = {
+    path: string;
+    params?: object;
+};
+
+export class PathMatcher extends BaseMatcher {
+    /**
+     * @inheritdoc
+     */
+    match(context, options: PathMatcherOptions) {
+        options = this.normalizeOptions(options);
+        const { path, params } = options;
+
         if (!path) {
             return false;
         }
@@ -35,6 +46,17 @@ class PathMatcher extends Matcher {
         return values;
     }
 
+    /**
+     * Normalize options
+     * @param options
+     */
+    normalizeOptions(options: PathMatcherOptions | string): PathMatcherOptions {
+        return typeof options == "string" ? { path: options } : options;
+    }
+
+    /**
+     * @inheritdoc
+     */
     getOptionsSchema() {
         return {
             oneOf: [
@@ -53,21 +75,16 @@ class PathMatcher extends Matcher {
         };
     }
 
-    normalizeOptions(options) {
-        this.validateOptions(options);
-
-        if (_.isString(options)) {
-            options = { path: options };
-        }
-
-        return options;
-    }
-
-    mergeOptions(options: { path?: string; params?: object } = {}, inheritOptions: { path?: string; params?: object } = {}) {
+    /**
+     * @inheritdoc
+     */
+    mergeOptions(options: PathMatcherOptions | string, parentOptions: PathMatcherOptions) {
         let segments = [];
+        options = this.normalizeOptions(options);
+        parentOptions = this.normalizeOptions(parentOptions);
 
-        if (inheritOptions && inheritOptions.path) {
-            segments.push(removeFirstSlash(inheritOptions.path));
+        if (parentOptions && parentOptions.path) {
+            segments.push(removeFirstSlash(parentOptions.path));
         }
 
         if (options && options.path) {
@@ -78,9 +95,7 @@ class PathMatcher extends Matcher {
 
         return {
             path,
-            params: _.assign(inheritOptions.params || {}, options.params || {})
+            params: _.assign(parentOptions.params || {}, options.params || {})
         };
     }
 }
-
-module.exports = PathMatcher;

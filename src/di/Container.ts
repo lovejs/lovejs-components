@@ -2,9 +2,9 @@ import * as _ from "lodash";
 
 import { isFunction } from "../utils";
 
-import { Arguments, Argument, Service } from "./Definitions";
+import { Argument, Service } from "./Definitions";
 
-import { ModulesResolver, Resolution, DefinitionsLoader, AutowireResolver, ConfigDefinitionsLoader } from "./index";
+import { ModulesResolverInterface, Resolution, DefinitionsLoaderInterface, AutowireResolver, ContainerConfigurationLoader } from "./index";
 
 import { DiResolutionError, DiServiceError } from "./errors";
 
@@ -21,8 +21,8 @@ export type ContainerOptions = {
     debug?: boolean;
     instances?: CallableMap;
     parameters?: ParametersMap;
-    definitionsLoader?: DefinitionsLoader;
-    modulesResolver?: ModulesResolver;
+    definitionsLoader?: DefinitionsLoaderInterface;
+    modulesResolver?: ModulesResolverInterface;
 };
 
 export type ServicesFilter = {
@@ -61,29 +61,39 @@ export class Container {
      */
     protected shared;
 
-    protected resolving;
+    /**
+     * Currently resolving
+     */
+    protected resolving: { [service: string]: Promise<any> };
 
     /**
      * Map of arguments resolve with type as key
      */
     protected argumentResolvers: { [type: string]: ArgumentResolver };
 
-    protected resolutionStack;
+    /**
+     * Name or parameters being resolved
+     */
+    protected resolutionStack: string[];
 
     /**
      * The modules resolver
      */
-    protected modulesResolver: ModulesResolver;
+    protected modulesResolver: ModulesResolverInterface;
 
     protected autowireResolver;
-    protected definitionsLoader;
+
+    /**
+     * The definition loader
+     */
+    protected definitionsLoader: DefinitionsLoaderInterface;
 
     constructor(options: ContainerOptions = {}) {
         const {
             debug = false,
             instances = {},
             parameters = {},
-            definitionsLoader = new ConfigDefinitionsLoader(),
+            definitionsLoader = new ContainerConfigurationLoader(),
             modulesResolver = new LocalModulesResolver()
         } = options;
 
@@ -213,7 +223,7 @@ export class Container {
     /**
      * Get the definition loader
      */
-    getDefinitionsLoader(): DefinitionsLoader {
+    getDefinitionsLoader(): DefinitionsLoaderInterface {
         return this.definitionsLoader;
     }
 
@@ -221,7 +231,7 @@ export class Container {
      * Set the definition loader
      * @param definitionsLoader
      */
-    setDefinitionsLoader(definitionsLoader: DefinitionsLoader) {
+    setDefinitionsLoader(definitionsLoader: DefinitionsLoaderInterface) {
         this.definitionsLoader = definitionsLoader;
     }
 
@@ -529,14 +539,14 @@ export class Container {
                     for (let callIdx = 0; callIdx < calls.length; callIdx++) {
                         const call = calls[callIdx];
                         const method = call.getMethod();
-                        let args = call.getArgs();
+                        let args = call.getArguments();
                         if (!instance[method] || !isFunction(instance[method])) {
                             throw new DiResolutionError(
                                 resolution,
                                 `The method "${method}" of service call n°${callIdx + 1} doesn't exist`
                             );
                         }
-                        if (args.count() === 0 && service.isAutowired()) {
+                        if (args.length === 0 && service.isAutowired()) {
                             args = await this.autowireResolver.resolve(instance.constructor, method, args);
                         }
 
@@ -574,7 +584,7 @@ export class Container {
     }
 
     async loadService(resolution, service) {
-        let args = service.getArgs();
+        let args = service.getArguments();
         let instance;
 
         if (service.hasFactory()) {
@@ -635,7 +645,7 @@ export class Container {
             }
 
             let instanceArgs = [];
-            if (creation !== "module" && args && args.count() > 0) {
+            if (creation !== "module" && args && args.length > 0) {
                 instanceArgs = await this.resolveArguments(args, resolution, "@constructor"); //resolution.clone(null, "@constructor"));
             }
 
@@ -691,14 +701,11 @@ export class Container {
      * @param resolution The current resolution
      * @param prefix The resolution prefix
      */
-    async resolveArguments(args: Arguments, resolution?: Resolution, prefix: string = "") {
-        if (!(args instanceof Arguments)) {
-            throw new DiResolutionError(resolution, `resolveArguments expect an Arguments class instance`);
-        }
+    protected async resolveArguments(args: any[], resolution?: Resolution, prefix: string = "") {
         let resolved = [];
 
-        for (let idx = 0; idx < args.count(); idx++) {
-            const value = args.get(idx);
+        for (let idx = 0; idx < args.length; idx++) {
+            const value = args[idx];
             resolved.push(value ? await this.resolveArgument(value, resolution, `${prefix}[${idx}]`) : null);
         }
 
@@ -708,7 +715,7 @@ export class Container {
     /**
      * Resolve an argument with his real value
      */
-    async resolveArgument(arg: any, resolution?: Resolution, prefix: string = "") {
+    protected async resolveArgument(arg: any, resolution?: Resolution, prefix: string = "") {
         if (!(arg instanceof Argument)) {
             arg = new Argument("default", arg);
         }

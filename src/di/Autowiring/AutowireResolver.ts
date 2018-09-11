@@ -1,11 +1,10 @@
 import * as _ from "lodash";
-import { Arguments } from "../Definitions";
 import { _service, _parameter, _default } from "../helpers";
 import { parametersExtracter, ExtractedParameter } from "../../reflection";
 import { deepMapValues } from "../../utils";
 
 /**
- * Resolve service autowired by resolving Arguments type
+ * Resolve service autowired by resolving Argument type
  */
 export class AutowireResolver {
     protected parametersExtracter: (target: string, method?: string) => any[];
@@ -15,13 +14,15 @@ export class AutowireResolver {
     }
 
     /**
-     * Resolve Arguments for given service module
+     * Resolve arguments for given service module
+     *
      * @param target The target object
      * @param method
      */
-    async resolve(target: any, method?: string) {
+    async resolve(target: any, method?: string): Promise<any[]> {
         const argsNames = this.parametersExtracter(target, method);
-        return new Arguments(_.map(argsNames, a => this.resolveArgument(a)));
+
+        return _.map(argsNames, a => this.resolveArgument(a));
     }
 
     /**

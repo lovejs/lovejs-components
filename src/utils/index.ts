@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import * as Promise from "bluebird";
+import * as Bluebird from "bluebird";
 
 const classRegexp = /^class\s/;
 
@@ -19,9 +19,9 @@ export async function deepMapValuesAsync(obj: any, callback, propertyPath?) {
     propertyPath = propertyPath || "";
 
     if (_.isArray(obj)) {
-        return await Promise.map(obj, deepMapValuesIteratee);
+        return await Bluebird.map(obj, deepMapValuesIteratee);
     } else if (_.isPlainObject(obj)) {
-        return await Promise.props(_.mapValues(obj, deepMapValuesIteratee));
+        return await Bluebird.props(_.mapValues(obj, deepMapValuesIteratee));
     } else {
         return await callback(obj, propertyPath);
     }

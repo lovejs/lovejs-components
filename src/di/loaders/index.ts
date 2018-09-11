@@ -1,1 +1,1 @@
-export * from "./ConfigDefinitionsLoader";
+export * from "./ContainerConfigurationLoader";

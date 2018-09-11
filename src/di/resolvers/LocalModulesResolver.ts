@@ -1,7 +1,8 @@
 import * as _ from "lodash";
 import * as path from "path";
+import { ModulesResolverInterface } from "..";
 
-export class LocalModulesResolver {
+export class LocalModulesResolver implements ModulesResolverInterface {
     async resolve(internalPath: string, parentPath?: string) {
         const [modulePath, targetPath] = internalPath.split("::");
         const isAbsolute = path.isAbsolute(modulePath);
@@ -13,19 +14,15 @@ export class LocalModulesResolver {
 
         let filePath;
         try {
-            filePath = eval(`require.resolve(pathfile, { paths })`);
+            filePath = eval(`require.resolve(modulePath, { paths })`);
         } catch (e) {
-            if (isAbsolute) {
-                throw new Error(`Local Module Resolver was unable to find module file for "${modulePath}"`);
-            } else {
-                const dirs = paths.join("\n");
-                throw new Error(`Local Module Resolver was unable to find module file for "${modulePath}" in directories: \n ${dirs}`);
-            }
+            let directories = isAbsolute ? "" : `in directories: \n ${paths.join("\n")}`;
+            throw new Error(`Local Module Resolver was unable to find module file for "${modulePath}" ${directories}`);
         }
 
         const module = require(filePath);
         if (targetPath) {
-            if (_.has(module, targetPath)) {
+            if (!_.has(module, targetPath)) {
                 throw new Error(`Module found but nothing found at target path ${targetPath}`);
             }
             return _.get(module, targetPath);

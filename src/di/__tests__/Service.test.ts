@@ -1,4 +1,4 @@
-import { Arguments, Call, Service, Tag, DiServiceError } from "../index";
+import { Call, Service, Tag, DiServiceError } from "../index";
 
 const service = new Service("module");
 
@@ -22,18 +22,21 @@ describe("#DI [Service]", function() {
         expect(service.isAutowired()).toBe(true);
     });
 
-    it("getArgs, setArgs", () => {
-        expect(service.getArgs()).toBe(false);
-        expect(service.setArgs(new Arguments([])).getArgs()).toBeInstanceOf(Arguments);
+    it("getArguments, setArguments", () => {
+        expect(service.getArguments()).toEqual([]);
+        expect(service.setArguments(["a"]).getArguments()).toEqual(expect.arrayContaining(["a"]));
+
         // @ts-ignore
-        expect(service.setArgs({}).getArgs()).toBeInstanceOf(Arguments);
+        expect(() => service.setArguments("1")).toThrowError();
         // @ts-ignore
-        expect(() => service.setArgs("1")).toThrowError();
+        expect(() => service.setArguments(123)).toThrowError();
+        // @ts-ignore
+        expect(() => service.setArguments({ a: "1" })).toThrowError();
     });
 
     it("addTag, getTag, getTags, setTags", () => {
         // @ts-ignore
-        expect(() => service.addTag("not_a_tag")).toThrowError(DiServiceError);
+        expect(() => service.addTag("not_a_tag")).toThrowError(Error);
 
         const tag1 = new Tag("tag1");
         const tag2 = new Tag("tag2");
@@ -52,7 +55,7 @@ describe("#DI [Service]", function() {
 
     it("addCall, hasCalls, getCalls, setCalls", () => {
         // @ts-ignore
-        expect(() => service.addCall("not_a_call")).toThrowError(DiServiceError);
+        expect(() => service.addCall("not_a_call")).toThrowError(Error);
 
         const call1 = new Call("method1");
         const call2 = new Call("method2");

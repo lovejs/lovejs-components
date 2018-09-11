@@ -1,10 +1,11 @@
-import { AutowireResolver, Arguments, Argument } from "../../..";
+import * as _ from "lodash";
+import { AutowireResolver, Argument } from "../../..";
 
 const resolver = new AutowireResolver();
 
 const resolvedFirst = async target => {
     const resolved = await resolver.resolve(target);
-    return resolved.get(0);
+    return _.first(resolved);
 };
 
 const expectArgument = (arg, type, value) => {
@@ -18,10 +19,10 @@ const expectService = async (target, service) => {
 };
 
 describe("#DI [Autowire Resolver]", function() {
-    it("Should resolve as Arguments instance", async () => {
+    it("Should resolve as an array", async () => {
         const fun1 = (p1) /* p1 */ => true;
         const resolved = await resolver.resolve(fun1);
-        expect(resolved).toBeInstanceOf(Arguments);
+        expect(resolved).toBeInstanceOf(Array);
     });
 
     it('Resolve args function(p1) to _service("p1")', async () => {

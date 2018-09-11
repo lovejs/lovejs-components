@@ -1,18 +1,41 @@
 import * as _ from "lodash";
 
-import { Alias, Arguments, Call, Configurator, Factory, Tag } from "./index";
+import { Alias, Call, Configurator, Factory, Tag } from "./index";
 
 import { DiServiceError } from "../errors";
+
+export enum ServiceCreationType {
+    auto,
+    module,
+    function,
+    class
+}
+
+export type ServiceProperties = {
+    module?: string;
+    creation?: ServiceCreationType;
+    alias?: Alias;
+    factory?: Factory;
+    arguments?: [];
+    tags?: Tag[];
+    calls?: Call[];
+    configurator?: Configurator;
+    preloaded?: boolean;
+    shared?: boolean;
+    autowired?: boolean;
+    public?: boolean;
+    parentId?: string;
+};
 
 const defaultsProperties = Object.freeze({
     module: false,
     creation: "auto",
-    factory: false,
     alias: false,
-    configurator: false,
-    args: false,
+    factory: false,
+    arguments: [],
     tags: [],
     calls: [],
+    configurator: false,
     preloaded: true,
     shared: true,
     autowired: false,
@@ -30,9 +53,8 @@ export class Service {
     protected parent: Service;
     protected compiled: boolean;
     protected extends: boolean;
-    protected arguments: Arguments;
 
-    constructor(mainProperty?: any, properties?: any) {
+    constructor(mainProperty?: any, properties?: ServiceProperties) {
         this._properties = _.pick(properties, _.keys(defaultsProperties));
 
         if (mainProperty) {
@@ -47,7 +69,7 @@ export class Service {
             }
         }
 
-        this.parentId = (properties && properties.parentId) || false;
+        this.parentId = properties && properties.parentId;
         this.compiled = false;
         this.extends = false;
     }
@@ -57,7 +79,7 @@ export class Service {
     }
 
     setProperties(properties) {
-        _.assign(this._properties, properties);
+        this._properties = { ...this._properties, ...properties };
     }
 
     isExtends() {
@@ -127,7 +149,7 @@ export class Service {
         return this.getProperty("creation");
     }
 
-    setCreation(creation) {
+    setCreation(creation: string) {
         if (!_.isString(creation) || !availableCreations.includes(creation.toLowerCase())) {
             throw new DiServiceError(`Invalid service creation provided. Must be one of "${availableCreations.join(", ")}" `);
         }
@@ -166,12 +188,16 @@ export class Service {
         return this.setProperty("alias", alias);
     }
 
-    getArgs() {
-        return this.getProperty("args");
+    getArguments() {
+        return this.getProperty("arguments");
     }
 
-    setArgs(args: Arguments) {
-        return this.setProperty("args", args);
+    setArguments(args: any[]) {
+        if (!(args instanceof Array)) {
+            throw new Error(`setArguments on Service expects an array, "${typeof args}" given`);
+        }
+
+        return this.setProperty("arguments", args);
     }
 
     getCalls() {
@@ -183,7 +209,7 @@ export class Service {
         return calls && calls.length > 0;
     }
 
-    setCalls(calls) {
+    setCalls(calls: Call[]) {
         this.setProperty("calls", []);
         if (calls) {
             calls.map(c => this.addCall(c));
@@ -193,6 +219,9 @@ export class Service {
     }
 
     addCall(aCall: Call) {
+        if (!(aCall instanceof Call)) {
+            throw new Error("Service class 'addCall' method expect an instance of 'Call'");
+        }
         const calls = this.getProperty("calls") || [];
         calls.push(aCall);
 
@@ -231,6 +260,9 @@ export class Service {
     }
 
     addTag(tag: Tag) {
+        if (!(tag instanceof Tag)) {
+            throw new Error("Service class 'addTag' method expect an instance of 'Tag'");
+        }
         const tags = this.getTags() || [];
         tags.push(tag);
 

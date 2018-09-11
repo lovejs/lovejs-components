@@ -1,9 +1,9 @@
 // export { default as config } from "./config";
-export * from "./config";
+export * from "./configuration";
 export * from "./console";
 export * from "./context";
 export * from "./di";
-export * from "./emitter";
+export * from "./event_dispatcher";
 export * from "./http";
 export * from "./middlewares";
 export * from "./pathfinder";

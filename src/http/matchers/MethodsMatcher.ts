@@ -1,21 +1,20 @@
-import * as _ from "lodash";
-const { Matcher } = require("../../routing");
+import { BaseMatcher } from "../../routing";
 
-class MethodsMatcher extends Matcher {
-    match(context, methods, route) {
+export class MethodsMatcher extends BaseMatcher {
+    /**
+     * @inheritdoc
+     */
+    match(context, methods) {
         return methods.includes(context.method);
     }
 
+    /**
+     * @inheritdoc
+     */
     getOptionsSchema() {
         const methods = ["GET", "HEAD", "POST", "PUT"];
         return {
             oneOf: [{ enum: methods }, { type: "array", items: { enum: methods } }]
         };
     }
-
-    normalizeOptions(options) {
-        return _.isArray(options) ? options : [options];
-    }
 }
-
-module.exports = MethodsMatcher;

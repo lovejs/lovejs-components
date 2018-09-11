@@ -1,19 +1,41 @@
 import * as _ from "lodash";
-import { ConfigLoader } from "../config";
+import { ConfigurationLoader, ConfigurationLoaderOptions } from "../configuration";
+import { LoaderInterface } from "./LoaderInterface";
+import { RoutesMap } from "./Router";
+import { RouteOptions } from "./Route";
 
 const routeNameSkip = "_";
-const typeProperty = ".type";
 
-export class RoutesLoader extends ConfigLoader {
-    protected loaders;
+export type RoutesLoaderOptions = {
+    loaders?: LoaderInterface[];
+};
 
-    constructor(loaders = [], options = {}) {
-        super(options);
+export type RouteDefinition = { ".type"?: string; [property: string]: any };
+
+export type RoutesDefinitions = {
+    routes: { [name: string]: RouteDefinition };
+};
+
+/**
+ * The main routes loader select the appropriate loader based on definition type
+ */
+export class RoutesLoader extends ConfigurationLoader {
+    /**
+     * Array of available loaders
+     */
+    protected loaders: LoaderInterface[];
+
+    constructor({ loaders }: RoutesLoaderOptions = { loaders: [] }, configOptions: ConfigurationLoaderOptions = {}) {
+        super(configOptions);
         this.loaders = loaders;
     }
 
-    getLoader(type) {
-        const loader = _.find(this.loaders, loader => loader.support(type));
+    /**
+     * Get the first loader supporting given type
+     * @param type
+     */
+    getLoader(type: string): LoaderInterface {
+        const loader = _.find(this.loaders, loader => loader.supports(type));
         if (!loader) {
             throw new Error(`RoutesLoader didn't find any loader for route of type "${type}"`);
         }
@@ -21,6 +43,9 @@ export class RoutesLoader extends ConfigLoader {
         return loader;
     }
 
+    /**
+     * Return the definitions validation schem
+     */
     getSchema() {
         return {
             type: "object",
@@ -30,39 +55,52 @@ export class RoutesLoader extends ConfigLoader {
         };
     }
 
-    getType(definition) {
-        return definition[typeProperty] || "default";
+    /**
+     * Given a definition, extract and return the type
+     */
+    extractType(definition): string {
+        const type = definition[".type"] || "default";
+        delete definition[".type"];
+
+        return type;
     }
 
-    validate(data) {
-        data = super.validate(data);
-        if (_.isPlainObject(data.routes)) {
-            _.each(data.routes, (definition, routeName) => this.getLoader(this.getType(definition)).validate(definition));
+    /**
+     * Generate the final route name based on route name and current name
+     */
+    generateRouteName(routeName: string, currentName?: string): string {
+        if (!currentName) {
+            return routeName;
         }
 
-        return data;
+        return routeName === routeNameSkip ? currentName : `${currentName}.${routeName}`;
     }
 
-    normalize(data) {
-        data = super.normalize(data);
-        data.routes = _.mapValues(data.routes, definition => this.getLoader(this.getType(definition)).normalize(definition, this));
+    /**
+     * Get the routes from definitions file
+     * @param definitions
+     * @param parentOptions
+     * @param currentName
+     */
+    async getRoutes(definitions: RoutesDefinitions, parentOptions: RouteOptions = {}, currentName?: string): Promise<RoutesMap> {
+        let routes = {};
+        for (let routeName in definitions.routes) {
+            const definition = definitions.routes[routeName];
+            const type = this.extractType(definition);
+            const loader = this.getLoader(type);
+            routeName = this.generateRouteName(routeName, currentName);
 
-        return data;
-    }
-
-    getRoutes(definitions, inheritOptions = {}, currentName = null) {
-        const routes = {};
-        _.each(definitions.routes, (definition, routeName) => {
-            const loader = this.getLoader(this.getType(definition));
-            const name = routeName === routeNameSkip ? currentName : currentName ? `${currentName}.${routeName}` : routeName;
-
-            _.merge(routes, loader.getRoutes(definition, this, inheritOptions, name));
-        });
+            routes = { ...routes, ...(await loader.getRoutes(definition, this, parentOptions, routeName)) };
+        }
 
         return routes;
     }
 
-    getRoutesFromFile(file) {
-        return this.getRoutes(this.loadFile(file));
+    /**
+     * Load routes from given file
+     * @param file
+     */
+    async getRoutesFromFile(filepath: string): Promise<RoutesMap> {
+        return await this.getRoutes(await this.loadFile(filepath));
     }
 }

@@ -1,5 +1,3 @@
-import { Arguments } from "..";
-
 /**
  * Call to a service method
  */
@@ -12,13 +10,13 @@ export class Call {
     /**
      * Arguments to perform the call with
      */
-    protected args: Arguments;
+    protected arguments: any[];
 
     protected await;
 
     constructor(method, args = [], doAwait = true) {
         this.method = method;
-        this.args = new Arguments(args);
+        this.arguments = args;
         this.await = doAwait;
     }
 
@@ -32,8 +30,8 @@ export class Call {
     /**
      * Return the call arguments
      */
-    getArgs() {
-        return this.args;
+    getArguments() {
+        return this.arguments;
     }
 
     /**
