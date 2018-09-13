@@ -4,10 +4,10 @@ const specials = `._-`;
 const alphaNums = "a-zA-Z0-9";
 const alphaNumsSpecials = `${alphaNums}${specials}`;
 
-export const ServiceNamePattern = `^[${alphaNumsSpecials}]+$`;
-export const ServiceAutoPattern = `^[${alphaNumsSpecials}]+\\*{1}[${alphaNumsSpecials}]*$`;
+export const ServiceNamePattern: string = `^[${alphaNumsSpecials}]+$`;
+export const ServiceAutoPattern: string = `^[${alphaNumsSpecials}]+\\*{1}[${alphaNumsSpecials}]*$`;
 
-export const ParameterNamePattern = "^[a-zA-Z0-9]+(?:[:._-]+[a-zA-Z0-9]+)*$";
+export const ParameterNamePattern: string = "^[a-zA-Z0-9]+(?:[:._-]+[a-zA-Z0-9]+)*$";
 
 const argsSchema = {
     oneOf: [{ type: "array" }, { type: "object" }]

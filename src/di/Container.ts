@@ -2,7 +2,7 @@ import * as _ from "lodash";
 
 import { isFunction } from "../utils";
 
-import { Argument, Service } from "./Definitions";
+import { Argument, Service, Alias } from "./Definitions";
 
 import { ModulesResolverInterface, Resolution, DefinitionsLoaderInterface, AutowireResolver, ContainerConfigurationLoader } from "./index";
 
@@ -449,6 +449,13 @@ export class Container {
      */
     getParameters(): ParametersMap {
         return this.parameters;
+    }
+
+    /**
+     * Set a service alias
+     */
+    setAlias(alias: string, service: string) {
+        this.setService(alias, new Service(new Alias(service)));
     }
 
     /**

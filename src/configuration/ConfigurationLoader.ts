@@ -73,7 +73,7 @@ export interface ConfigurationTag {
     /**
      * A optionnal validation function
      */
-    validate?: (data: any) => Promise<boolean>;
+    validate?: (data: any) => Promise<void>;
 
     /**
      * The normalization function
@@ -81,7 +81,7 @@ export interface ConfigurationTag {
      * @param vars Variables
      * @param loader The config Loader
      */
-    normalize(data: any, vars?: any): Promise<object | string>;
+    normalize(data: any, vars?: any): Promise<any | boolean>;
 }
 
 /**
@@ -136,7 +136,7 @@ export class ConfigurationLoader {
     /**
      * Indicate if extensions have been loaded
      */
-    protected extensionsLoaded: boolean;
+    protected extensionsLoaded: boolean = false;
 
     /**
      * Path finder service to lookup for files
@@ -201,6 +201,13 @@ export class ConfigurationLoader {
         this.attributes = attributes;
 
         parsers.forEach(parser => this.addParser(parser));
+    }
+
+    /**
+     * Get the validator
+     */
+    getValidator(): ValidatorInterface {
+        return this.validator;
     }
 
     /**
@@ -356,10 +363,11 @@ export class ConfigurationLoader {
             } else if (schema) {
                 await this.validator.validate(token.getData(), schema);
             }
-        } catch (e) {
-            throw new ConfigurationError(`Invalid data provided for tag "${token.getTag()}" : ${e.message}`, {
+        } catch (error) {
+            throw new ConfigurationError(`The data provided for tag "${token.getTag()}" ${JSON.stringify(token.getData())} are invalid`, {
                 file: this.getCurrentFile(),
-                path: tokenPath
+                path: tokenPath,
+                error
             });
         }
 
@@ -441,6 +449,7 @@ export class ConfigurationLoader {
      * @param parser
      */
     async loadContent(content: Buffer, parser: ConfigurationParserInterface) {
+        await this.loadExtensions();
         return await this.loadConfig(await parser.parse(content, this.getTagsNames()));
     }
 

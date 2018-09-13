@@ -11,10 +11,16 @@ export class ConfigurationError extends ExtendableError {
      */
     protected path?: string;
 
-    constructor(message: string, { file, path }: { file?: string; path?: string }) {
+    /**
+     * Wrapped error
+     */
+    protected error?: Error;
+
+    constructor(message: string, { file, path, error }: { file?: string; path?: string; error?: Error }) {
         super(`Configuration error ${file ? `in file "${file}"` : ""} ${path ? `at path "${path}"` : ""}: ${message}`);
         this.file = file;
         this.path = path;
+        this.error = error;
     }
 
     getFile() {
@@ -23,5 +29,9 @@ export class ConfigurationError extends ExtendableError {
 
     getPath() {
         return this.path;
+    }
+
+    getError() {
+        return this.error;
     }
 }

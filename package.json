@@ -3,14 +3,15 @@
     "author": "Vincent <vincent@fullstack.pro>",
     "version": "0.0.2",
     "description": "Lovejs components",
-    "main": "src/index.js",
+    "main": "dist/index.js",
     "keywords": [
         "lovejs",
         "components"
     ],
     "types": "dist/index.d.ts",
     "scripts": {
-        "tsc": "tsc",
+        "build": "tsc",
+        "watch": "tsc --watch",
         "test": "jest",
         "testing": "jest --watch"
     },

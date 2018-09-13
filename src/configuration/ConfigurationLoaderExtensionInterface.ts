@@ -1,7 +1,7 @@
 import { ConfigurationTagList, ConfigurationNormalizer } from ".";
 
 /**
- * ConfigLoaderExtension allows to add tags and normalizers to a config loader
+ * ConfigLoaderExtension add tags and normalizers to a configuration loader
  */
 export interface ConfigurationLoaderExtensionInterface {
     /**

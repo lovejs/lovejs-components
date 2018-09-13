@@ -16,22 +16,22 @@ export class Output {
     constructor({ silent = false, styles = {}, tableTheme = "void", transformers = [] } = {}) {
         this.silent = silent;
         this.tableTheme = tableTheme;
-        this.styles = Object.assign(
-            {
+        this.styles = {
+            ...{
                 error: { fg: "whiteBright", bg: "redBright" },
                 info: { fg: "blueBright" },
                 success: { fg: "greenBright" },
                 comment: { fg: "cyan" }
             },
-            styles
-        );
+            ...styles
+        };
         this.transformers = transformers;
         this.transformers.push(stylize(this.styles));
         this.transformers.push(emojize());
     }
 
-    log(data) {
-        return this.output(data, true);
+    write(data) {
+        return this.output(data, false);
     }
 
     writeln(data) {
@@ -39,10 +39,12 @@ export class Output {
     }
 
     table(rows, columns = {}) {
-        return table(rows, {
-            border: getBorderCharacters(this.tableTheme),
-            columns
-        });
+        return this.output(
+            table(rows, {
+                border: getBorderCharacters(this.tableTheme),
+                columns
+            })
+        );
     }
 
     applyTransformers(str) {
@@ -56,7 +58,7 @@ export class Output {
         return new progress.Bar(options, theme ? theme : progress.Presets.shades_classic);
     }
 
-    output(data, newLine = false) {
+    protected output(data, newLine = false) {
         if (this.silent) {
             return;
         }

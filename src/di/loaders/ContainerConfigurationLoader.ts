@@ -4,9 +4,7 @@ import * as path from "path";
 import { ConfigurationLoader } from "../../configuration";
 import { definitionsSchema } from "../schemas/definitions";
 import { Argument, Alias, Call, Factory, Service, ServiceCreationType, ServiceProperties, Tag } from "../Definitions";
-import { ContainerConfigurationError } from "./ContainerConfigurationError";
 
-import { Configurator } from "../Definitions/Configurator";
 import { DefinitionsLoaderInterface } from "..";
 import { ParametersMap, ServicesMap } from "../Container";
 
@@ -45,6 +43,11 @@ export interface ServicesDefinition {
 export class ContainerConfigurationLoader extends ConfigurationLoader implements DefinitionsLoaderInterface {
     constructor(...args) {
         super(...args);
+
+        // @ts-ignore
+        // @xxx Find a cleaner way :-/
+        this.getValidator().registerInstanceClass("Argument", Argument);
+
         this.tags = {
             ...this.tags,
             parameter: {
@@ -62,7 +65,7 @@ export class ContainerConfigurationLoader extends ConfigurationLoader implements
                         {
                             type: "object",
                             properties: {
-                                name: { oneOf: [{ type: "string" }, { instanceof: "ConfigTag" }] }
+                                name: { oneOf: [{ type: "string" }, { instanceof: "Argument" }] }
                             },
                             required: ["name"]
                         }
